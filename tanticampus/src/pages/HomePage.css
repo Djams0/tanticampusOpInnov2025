@@ -1,0 +1,23 @@
+.home-page {
+  text-align: center;
+  padding: 2rem;
+}
+
+.auth-options {
+  margin-top: 2rem;
+}
+
+.auth-button {
+  display: inline-block;
+  padding: 0.8rem 1.5rem;
+  background: #3498db;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  margin: 0 1rem;
+  transition: background 0.3s;
+}
+
+.auth-button:hover {
+  background: #2980b9;
+}
