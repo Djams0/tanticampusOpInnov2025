@@ -2,6 +2,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
+import WalletPage from './pages/WalletPage';
+import NotificationsPage from './pages/NotificationsPage';
+import ProfilePage from './pages/ProfilePage';
+import NewTontinePage from './pages/NewTontinePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -19,6 +23,38 @@ function App() {
                 <HomePage />
               </ProtectedRoute>
             } 
+          />
+          <Route 
+            path="/wallet" 
+            element={
+              <ProtectedRoute>
+                <WalletPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/notifications" 
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/new-tontine"
+            element={
+              <ProtectedRoute>
+                <NewTontinePage />
+              </ProtectedRoute>
+            }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
