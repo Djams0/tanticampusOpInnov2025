@@ -1,69 +1,69 @@
 const express = require('express');
 const db = require('../config/db');
-const { authenticateToken } = require('../middleware/auth');
-
 const router = express.Router();
 
-router.get('/home-overview/:userId', async (req, res) => {
+// Exemple : /api/home/4
+router.get('/home/:userId', async (req, res) => {
   const userId = req.params.userId;
 
-  // 1. Récupérer les 4 tontines max actives
-  const tontines = await db.query(`
-    SELECT t.tontine_id, t.title, t.status, t.contribution_amount
-    FROM tontines t
-    JOIN tontineparticipants p ON p.tontine_id = t.tontine_id
-    WHERE p.user_id = ? AND p.status = 'active'
-    LIMIT 4
-  `, [userId]);
+  try {
+    // 1. Récupérer 4 tontines actives
+    const tontines = await db.query(`
+      SELECT t.tontine_id, t.title, t.status, t.contribution_amount, t.frequency
+      FROM tontines t
+      JOIN tontineparticipants tp ON tp.tontine_id = t.tontine_id
+      WHERE tp.user_id = ? AND tp.status = 'active'
+      LIMIT 4
+    `, [userId]);
 
-  // 2. Prochaine contribution à payer
-  const nextContribution = await db.query(`
-    SELECT amount, due_date, status
-    FROM contributions
-    WHERE user_id = ? AND status = 'pending'
-    ORDER BY due_date ASC
-    LIMIT 1
-  `, [userId]);
+    // 2. Prochaine contribution à payer
+    const [nextContribution] = await db.query(`
+      SELECT amount, due_date, status
+      FROM contributions
+      WHERE user_id = ? AND status = 'pending'
+      ORDER BY due_date ASC
+      LIMIT 1
+    `, [userId]);
 
-  // 3. Solde Wallet fictif (à remplacer si tu as une table wallet)
-  const walletBalance = 84.00;
+    // 3. Nombre de notifications non lues
+    const [notifications] = await db.query(`
+      SELECT COUNT(*) AS unread_count
+      FROM notifications
+      WHERE user_id = ? AND is_read = 0
+    `, [userId]);
 
-  // 4. Nombre de notifications non lues
-  const notifications = await db.query(`
-    SELECT COUNT(*) AS unread_count
-    FROM notifications
-    WHERE user_id = ? AND is_read = 0
-  `, [userId]);
+    // 4. Derniers posts du forum (3 max)
+    const forumPosts = await db.query(`
+      SELECT p.post_id, p.title, p.category, p.created_at, u.first_name, u.last_name
+      FROM forumposts p
+      JOIN users u ON u.user_id = p.user_id
+      ORDER BY p.created_at DESC
+      LIMIT 3
+    `);
 
-  res.json({
-    tontines,
-    next_contribution: nextContribution[0] || null,
-    wallet_balance: walletBalance,
-    notifications: notifications[0]?.unread_count || 0
-  });
-});
+    // 5. Dernières sessions de mentorat programmées (3 max)
+    const sessions = await db.query(`
+      SELECT m.session_id, m.topic, m.scheduled_time, u.first_name AS mentor_first_name, u.last_name AS mentor_last_name
+      FROM mentoringsessions m
+      JOIN mentors mt ON mt.mentor_id = m.mentor_id
+      JOIN users u ON u.user_id = mt.user_id
+      WHERE m.mentee_id = ?
+      ORDER BY m.scheduled_time DESC
+      LIMIT 3
+    `, [userId]);
 
-
-router.post('/tontine/join', async (req, res) => {
-  const { userId, tontineId } = req.body;
-
-  const [count] = await db.query(`
-    SELECT COUNT(*) AS active_count
-    FROM tontineparticipants
-    WHERE user_id = ? AND status = 'active'
-  `, [userId]);
-
-  if (count.active_count >= 4) {
-    return res.status(400).json({ error: "Vous participez déjà à 4 tontines actives." });
+    res.json({
+      tontines,
+      next_contribution: nextContribution || null,
+      unread_notifications: notifications?.unread_count || 0,
+      latest_forum_posts: forumPosts,
+      upcoming_mentoring_sessions: sessions,
+      wallet_balance: 84.00 // fictif ou à connecter à une vraie table
+    });
+  } catch (error) {
+    console.error('Erreur dans /home:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
-
-  await db.query(`
-    INSERT INTO tontineparticipants (user_id, tontine_id, status, is_approved)
-    VALUES (?, ?, 'pending', 0)
-  `, [userId, tontineId]);
-
-  res.json({ success: true });
 });
-
 
 module.exports = router;
