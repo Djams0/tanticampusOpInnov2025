@@ -1,0 +1,90 @@
+body {
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: #fdfcf8;
+}
+
+.profile-container {
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+}
+
+.profile-header {
+  background-color: #2c9c92;
+  padding: 40px 20px 20px;
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
+  text-align: center;
+  color: white;
+  position: relative;
+}
+
+.back-text {
+  position: absolute;
+  top: 15px;
+  left: 20px;
+  font-size: 16px;
+  cursor: pointer;
+  color: #fff;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  margin: auto;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+}
+
+.user-name {
+  margin-top: 10px;
+  color: #fff;
+  font-size: 20px;
+}
+
+.profile-menu {
+  margin-top: 30px;
+}
+
+.menu-item {
+  background-color: #f9f9ff;
+  margin: 10px 0;
+  padding: 15px 20px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-left {
+  display: flex;
+  align-items: center;
+}
+
+.icon {
+  font-size: 18px;
+  color: #1b1b2e;
+}
+
+.label {
+    margin-left: 12px;
+  font-size: 16px;
+  color: #1b1b2e;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.check {
+  color: #2c9c92;
+  font-size: 18px;
+}
+
+.edit-icon {
+  color: #1b1b2e;
+  cursor: pointer;
+}
