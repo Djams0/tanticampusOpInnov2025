@@ -34,7 +34,9 @@ const ProfilePage = () => {
   return (
     <div className="profile-container">
       <header className="profile-header">
-        <div className="avatar" />
+        <div className="avatar">
+          <img src="/profile.png" alt="profil" className="profile-img" />
+        </div>
         <h2 className="user-name">Mansour Djamil Ndiaye</h2>
       </header>
 
