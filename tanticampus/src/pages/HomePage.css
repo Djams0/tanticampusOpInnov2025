@@ -128,7 +128,13 @@
   margin-top: 10px;
   font-size: 12px;
   text-decoration: underline;
-  cursor: pointer;
+  color: white;
+}
+
+.details-link_new {
+  display: block;
+  text-decoration: none;
+  color: white;
 }
 @media screen and (max-width: 1024px) {
   .header-card {

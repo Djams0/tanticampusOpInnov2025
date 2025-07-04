@@ -1,12 +1,17 @@
 // pages/HomePage.jsx
 import React from 'react';
 import './HomePage.css';
+import { Link, useLocation } from 'react-router-dom';
 
 const HomePage = () => {
   // Données factices
   const tontines = ['Amis'];
   const walletBalance = 84;
-  const nextContribution = null; // ou { amount: 25, due_date: "2024-12-05" }
+  const nextContribution = null;
+  const today = new Date();
+  const options = { day: '2-digit', month: 'short', year: 'numeric' };
+  const formattedDate = today.toLocaleDateString('fr-FR', options);
+
 
   return (
     <div className="home-container">
@@ -19,8 +24,8 @@ const HomePage = () => {
               {tontines.map((t, i) => (
                 <div key={i} className="tontine-item">{t}</div>
               ))}
-              {[...Array(2)].map((_, i) => (
-                <div key={i} className="tontine-empty">+</div>
+              {[...Array(3)].map((_, i) => (
+                <Link to="/new-tontine" className="details-link_new"><div key={i} className="tontine-empty">+</div></Link>
               ))}
             </div>
             <p className="import-link">+ Importer une tontine</p>
@@ -28,12 +33,12 @@ const HomePage = () => {
         </div>
         <div className="header-right">
           <img src="/profile.png" alt="profil" className="profile-img" />
-          <p className="view-profile">Voir mon profil</p>
+          <Link to="/Profile" className="details-link">Mon profile</Link>
         </div>
       </div>
 
       <div className="overview">
-        <p className="date">03 déc. 2024</p>
+        <p className="date">{formattedDate}</p>
         <div className="overview-boxes">
           <div className="box orange">
             <p className="box-title">Verser ma prochaine cotisation</p>
@@ -47,7 +52,7 @@ const HomePage = () => {
           <div className="box dark">
             <p className="box-title">Mon Wallet</p>
             <p className="wallet-amount">{walletBalance}€</p>
-            <span className="details-link">Voir les détails</span>
+            <Link to="/Wallet" className="details-link">Voir les détails</Link>
           </div>
         </div>
       </div>
