@@ -51,6 +51,10 @@ router.post('/register', [
         trust_score: 100
       }
     });
+
+    console.log('📝 Inscription réussie :', newUser);
+    console.log('🔐 Token généré :', token);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -93,6 +97,10 @@ router.post('/login', [
         trust_score: user.trust_score
       }
     });
+
+    console.log('🔑 Connexion réussie :', loggedUser);
+    console.log('🔐 Token généré :', token);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
