@@ -1,4 +1,6 @@
+// pages/NewTontinePage.jsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './NewTontinePage.css';
 
 const CreateTontinePage = () => {
@@ -9,16 +11,62 @@ const CreateTontinePage = () => {
   const [frequency, setFrequency] = useState('mensuelle');
   const [duration, setDuration] = useState('');
   const [amount, setAmount] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({
+
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setErrorMessage("Token d'authentification non trouvé.");
+      return;
+    }
+
+    const payload = {
       tontineName,
       firstPayment: `${day}-${month}-${year}`,
       frequency,
-      duration,
-      amount
-    });
+      duration: parseInt(duration),
+      amount: parseFloat(amount),
+    };
+
+    try {
+      const response = await fetch('http://localhost:3000/api/tontine/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 400 && data.errors) {
+          // Erreurs de validation
+          const messages = data.errors.map(err => `• ${err.msg} (${err.param})`).join('\n');
+          setErrorMessage(`Erreur 400 - Données invalides :\n${messages}`);
+        } else if (data.error) {
+          // Autre message d'erreur
+          setErrorMessage(`Erreur ${response.status} - ${data.error}`);
+        } else {
+          setErrorMessage(`Erreur ${response.status} - Une erreur inconnue est survenue.`);
+        }
+      } else {
+        // Succès
+        setSuccessMessage(` ${data.message}`);
+        setTimeout(() => {
+          navigate('/tontine');
+        }, 5000); // Redirection après 5 secondes
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage('Erreur de connexion au serveur. Veuillez réessayer plus tard.');
+    }
   };
 
   return (
@@ -26,6 +74,10 @@ const CreateTontinePage = () => {
       <div className="tontine-header-bar" />
       <div className="tontine-form-wrapper">
         <h1>Création de la tontine</h1>
+
+        {errorMessage && <div className="error-message">{errorMessage}</div>}
+        {successMessage && <div className="success-message">{successMessage}</div>}
+
         <form className="tontine-form" onSubmit={handleSubmit}>
           <label>Nom de la tontine</label>
           <input
@@ -33,6 +85,7 @@ const CreateTontinePage = () => {
             placeholder="Nom de la tontine"
             value={tontineName}
             onChange={(e) => setTontineName(e.target.value)}
+            required
           />
 
           <label>Entrez la date du premier versement</label>
@@ -56,6 +109,7 @@ const CreateTontinePage = () => {
               ))}
             </select>
           </div>
+
           <p className="info-text">
             Le <span className="highlight">{day}</span> de chaque période, à partir de <span className="highlight">{month}</span>, un membre recevra la cagnotte.
           </p>
@@ -84,12 +138,14 @@ const CreateTontinePage = () => {
             ))}
           </select>
 
-          <label>Choisissez le montant de la cotisation {frequency === 'mensuelle' ? 'mensuelle' : frequency === 'hebdomadaire' ? 'hebdomadaire' : 'bimensuelle'}</label>
+          <label>Montant de la cotisation</label>
           <input
             type="number"
             placeholder="Entrez le montant ici"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            min="1"
+            required
           />
 
           <button type="submit">Étape suivante</button>

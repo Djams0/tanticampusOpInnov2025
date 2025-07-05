@@ -7,7 +7,8 @@ import NotificationsPage from './pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
 import NewTontinePage from './pages/NewTontinePage';
 import ProtectedRoute from './components/ProtectedRoute';
-import BottomNavbar from './components/BottomNavbar'; // <-- Ajouté
+import BottomNavbar from './components/BottomNavbar';
+import TontinePage from './pages/TontinePage';
 import './App.css';
 
 import { useEffect, useState } from 'react';
@@ -64,6 +65,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <NewTontinePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tontine"
+          element={
+            <ProtectedRoute>
+              <TontinePage />
             </ProtectedRoute>
           }
         />

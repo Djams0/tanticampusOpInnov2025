@@ -44,7 +44,16 @@
   font-weight: bold;
   color: white;
   cursor: pointer;
+  text-align: center;
+  font-size: 12px;
 }
+
+.tontine-item {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 
 .tontine-empty {
   background-color: transparent;
