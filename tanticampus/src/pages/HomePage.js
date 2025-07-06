@@ -79,7 +79,7 @@ const HomePage = () => {
               ))}
             </div>
 
-            {participatingTontines.length === 0 && <p className="import-link">+ Importer une tontine</p>}
+            <Link to="/Wallet" className="details-link">Voir les détails</Link>
           </div>
         </div>
 
