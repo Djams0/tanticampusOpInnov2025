@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : ven. 04 juil. 2025 à 11:11
+-- Généré le : dim. 06 juil. 2025 à 14:43
 -- Version du serveur : 9.1.0
 -- Version de PHP : 8.3.14
 
@@ -99,6 +99,35 @@ CREATE TABLE IF NOT EXISTS `tontines` (
   PRIMARY KEY (`tontine_id`),
   UNIQUE KEY `tontine_code` (`tontine_code`),
   KEY `admin_id` (`admin_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `tontines`
+--
+
+INSERT INTO `tontines` (`tontine_id`, `admin_id`, `tontine_code`, `title`, `description`, `frequency`, `contribution_amount`, `max_participants`, `start_date`, `status`, `created_at`, `updated_at`) VALUES
+(1, 1, '93392148QD', 'Test', NULL, 'weekly', 30.00, 5, '2025-07-10', 'pending', '2025-07-04 15:18:12', '2025-07-04 15:18:12');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `tontine_cycles`
+--
+
+DROP TABLE IF EXISTS `tontine_cycles`;
+CREATE TABLE IF NOT EXISTS `tontine_cycles` (
+  `cycle_id` int NOT NULL AUTO_INCREMENT,
+  `tontine_id` int NOT NULL,
+  `start_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `end_date` timestamp NULL DEFAULT NULL,
+  `status` enum('pending','active','completed') DEFAULT 'pending',
+  `amount_per_participant` decimal(10,2) NOT NULL,
+  `total_amount` decimal(10,2) NOT NULL,
+  `beneficiary_id` int DEFAULT NULL,
+  `payout_date` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`cycle_id`),
+  KEY `tontine_id` (`tontine_id`),
+  KEY `beneficiary_id` (`beneficiary_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -119,7 +148,14 @@ CREATE TABLE IF NOT EXISTS `tontine_participants` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `tontine_id` (`tontine_id`,`user_id`),
   KEY `user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `tontine_participants`
+--
+
+INSERT INTO `tontine_participants` (`id`, `tontine_id`, `user_id`, `role`, `join_date`, `has_received`, `is_active`) VALUES
+(1, 1, 1, 'admin', '2025-07-04 15:18:12', 0, 1);
 
 -- --------------------------------------------------------
 
@@ -168,7 +204,14 @@ CREATE TABLE IF NOT EXISTS `users` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `users`
+--
+
+INSERT INTO `users` (`user_id`, `first_name`, `last_name`, `email`, `password_hash`, `phone_number`, `date_of_birth`, `university`, `student_id`, `is_verified`, `verification_document`, `trust_score`, `score_last_updated`, `wallet_balance`, `last_activity_at`, `is_banned`, `created_at`, `updated_at`) VALUES
+(1, 'Mansour Djamil', 'Ndiaye', 'mansourdjamil14@gmail.com', '$2b$10$mCtvQPVRAa31RlMaMh6LieEaj9qmKIq32UGkSIlgBwZAVlz7JOwoS', NULL, NULL, 'EPSI-Paris', '01', 0, NULL, 100, '2025-07-04 11:24:10', 0.00, '2025-07-04 13:24:10', 0, '2025-07-04 11:24:10', '2025-07-05 15:31:48');
 
 --
 -- Contraintes pour les tables déchargées
@@ -200,6 +243,13 @@ ALTER TABLE `messages`
 --
 ALTER TABLE `tontines`
   ADD CONSTRAINT `tontines_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `tontine_cycles`
+--
+ALTER TABLE `tontine_cycles`
+  ADD CONSTRAINT `tontine_cycles_ibfk_1` FOREIGN KEY (`tontine_id`) REFERENCES `tontines` (`tontine_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tontine_cycles_ibfk_2` FOREIGN KEY (`beneficiary_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
 --
 -- Contraintes pour la table `tontine_participants`

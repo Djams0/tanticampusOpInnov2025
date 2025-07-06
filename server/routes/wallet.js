@@ -59,32 +59,35 @@ router.post('/deposit', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Montant invalide' });
   }
 
-  try {
-    await db.beginTransaction();
+  const connection = await db.getConnection(); // 👈 Obtenir une connexion
 
-    // Enregistrement de la transaction
-    await db.query(
+  try {
+    await connection.beginTransaction(); // 👈 Transactions sur la connexion
+
+    await connection.query(
       `INSERT INTO transactions (user_id, type, amount) 
        VALUES (?, 'deposit', ?)`,
       [req.user.id, amount]
     );
 
-    // Mise à jour du solde
-    await db.query(
+    await connection.query(
       `UPDATE users 
        SET wallet_balance = wallet_balance + ? 
        WHERE user_id = ?`,
       [amount, req.user.id]
     );
 
-    await db.commit();
+    await connection.commit(); // 👈 Commit
     res.json({ success: true, message: 'Dépôt effectué' });
   } catch (err) {
-    await db.rollback();
+    await connection.rollback(); // 👈 Rollback
     console.error('Erreur dépôt:', err);
     res.status(500).json({ error: 'Erreur lors du dépôt' });
+  } finally {
+    connection.release(); // 👈 Libération obligatoire
   }
 });
+
 
 // Retrait d'argent
 router.post('/withdraw', authenticateToken, async (req, res) => {
@@ -94,43 +97,42 @@ router.post('/withdraw', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Montant invalide' });
   }
 
-  try {
-    await db.beginTransaction();
+  const connection = await db.getConnection();
 
-    // Vérification du solde
-    const [[user]] = await db.query(
+  try {
+    await connection.beginTransaction();
+
+    const [[user]] = await connection.query(
       `SELECT wallet_balance FROM users WHERE user_id = ? FOR UPDATE`,
       [req.user.id]
     );
 
     if (user.wallet_balance < amount) {
-      await db.rollback();
+      await connection.rollback();
       return res.status(400).json({ error: 'Solde insuffisant' });
     }
 
-    // Enregistrement de la transaction
-    await db.query(
-      `INSERT INTO transactions (user_id, type, amount) 
-       VALUES (?, 'withdrawal', ?)`,
+    await connection.query(
+      `INSERT INTO transactions (user_id, type, amount) VALUES (?, 'withdrawal', ?)`,
       [req.user.id, amount]
     );
 
-    // Mise à jour du solde
-    await db.query(
-      `UPDATE users 
-       SET wallet_balance = wallet_balance - ? 
-       WHERE user_id = ?`,
+    await connection.query(
+      `UPDATE users SET wallet_balance = wallet_balance - ? WHERE user_id = ?`,
       [amount, req.user.id]
     );
 
-    await db.commit();
+    await connection.commit();
     res.json({ success: true, message: 'Retrait effectué' });
   } catch (err) {
-    await db.rollback();
+    await connection.rollback();
     console.error('Erreur retrait:', err);
     res.status(500).json({ error: 'Erreur lors du retrait' });
+  } finally {
+    connection.release();
   }
 });
+
 
 // Paiement d'une cotisation
 router.post('/pay-contribution', authenticateToken, async (req, res) => {
@@ -140,11 +142,12 @@ router.post('/pay-contribution', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'ID de tontine requis' });
   }
 
-  try {
-    await db.beginTransaction();
+  const connection = await db.getConnection();
 
-    // Récupération des infos tontine
-    const [[tontine]] = await db.query(
+  try {
+    await connection.beginTransaction();
+
+    const [[tontine]] = await connection.query(
       `SELECT 
         t.contribution_amount,
         t.status,
@@ -159,28 +162,26 @@ router.post('/pay-contribution', authenticateToken, async (req, res) => {
     );
 
     if (!tontine) {
-      await db.rollback();
+      await connection.rollback();
       return res.status(404).json({ error: 'Tontine non trouvée' });
     }
 
-    // Validations
     if (tontine.status !== 'active') {
-      await db.rollback();
+      await connection.rollback();
       return res.status(400).json({ error: 'Tontine non active' });
     }
 
     if (!tontine.is_active) {
-      await db.rollback();
+      await connection.rollback();
       return res.status(400).json({ error: 'Vous êtes inactif dans cette tontine' });
     }
 
     if (!tontine.current_cycle_id) {
-      await db.rollback();
+      await connection.rollback();
       return res.status(400).json({ error: 'Aucun cycle actif pour cette tontine' });
     }
 
-    // Vérification paiement existant
-    const [[hasPaid]] = await db.query(
+    const [[hasPaid]] = await connection.query(
       `SELECT 1 FROM transactions 
        WHERE user_id = ? AND tontine_id = ? AND type = 'contribution'
        AND transaction_date >= (SELECT start_date FROM tontine_cycles WHERE cycle_id = ?)`,
@@ -188,38 +189,32 @@ router.post('/pay-contribution', authenticateToken, async (req, res) => {
     );
 
     if (hasPaid) {
-      await db.rollback();
+      await connection.rollback();
       return res.status(400).json({ error: 'Vous avez déjà payé pour ce cycle' });
     }
 
-    // Vérification solde
-    const [[user]] = await db.query(
+    const [[user]] = await connection.query(
       `SELECT wallet_balance FROM users WHERE user_id = ? FOR UPDATE`,
       [req.user.id]
     );
 
     if (user.wallet_balance < tontine.contribution_amount) {
-      await db.rollback();
+      await connection.rollback();
       return res.status(400).json({ error: 'Solde insuffisant' });
     }
 
-    // Paiement de la cotisation
-    await db.query(
+    await connection.query(
       `INSERT INTO transactions (user_id, tontine_id, type, amount) 
        VALUES (?, ?, 'contribution', ?)`,
       [req.user.id, tontine_id, tontine.contribution_amount]
     );
 
-    // Mise à jour solde
-    await db.query(
-      `UPDATE users 
-       SET wallet_balance = wallet_balance - ? 
-       WHERE user_id = ?`,
+    await connection.query(
+      `UPDATE users SET wallet_balance = wallet_balance - ? WHERE user_id = ?`,
       [tontine.contribution_amount, req.user.id]
     );
 
-    // Vérification si tous ont payé
-    const [participants] = await db.query(
+    const [participants] = await connection.query(
       `SELECT 
         tp.user_id,
         (SELECT COUNT(*) FROM transactions tr 
@@ -237,8 +232,7 @@ router.post('/pay-contribution', authenticateToken, async (req, res) => {
     let payoutData = { payoutTriggered: false };
 
     if (allPaid) {
-      // Sélection du bénéficiaire
-      const [[beneficiary]] = await db.query(
+      const [[beneficiary]] = await connection.query(
         `SELECT user_id FROM tontine_participants 
          WHERE tontine_id = ? AND has_received = 0 AND is_active = 1
          ORDER BY join_date ASC LIMIT 1`,
@@ -248,31 +242,24 @@ router.post('/pay-contribution', authenticateToken, async (req, res) => {
       if (beneficiary) {
         const payoutAmount = tontine.contribution_amount * participants.length;
 
-        // Enregistrement payout
-        await db.query(
+        await connection.query(
           `INSERT INTO transactions (user_id, tontine_id, type, amount) 
            VALUES (?, ?, 'payout', ?)`,
           [beneficiary.user_id, tontine_id, payoutAmount]
         );
 
-        // Mise à jour solde bénéficiaire
-        await db.query(
-          `UPDATE users 
-           SET wallet_balance = wallet_balance + ? 
-           WHERE user_id = ?`,
+        await connection.query(
+          `UPDATE users SET wallet_balance = wallet_balance + ? WHERE user_id = ?`,
           [payoutAmount, beneficiary.user_id]
         );
 
-        // Marquer comme ayant reçu
-        await db.query(
-          `UPDATE tontine_participants 
-           SET has_received = 1 
+        await connection.query(
+          `UPDATE tontine_participants SET has_received = 1 
            WHERE tontine_id = ? AND user_id = ?`,
           [tontine_id, beneficiary.user_id]
         );
 
-        // Clôturer le cycle
-        await db.query(
+        await connection.query(
           `UPDATE tontine_cycles 
            SET 
              status = 'completed',
@@ -284,8 +271,7 @@ router.post('/pay-contribution', authenticateToken, async (req, res) => {
           [beneficiary.user_id, payoutAmount, tontine.current_cycle_id]
         );
 
-        // Créer un nouveau cycle si la tontine continue
-        await db.query(
+        await connection.query(
           `INSERT INTO tontine_cycles 
            (tontine_id, start_date, status, amount_per_participant) 
            VALUES (?, NOW(), 'active', ?)`,
@@ -300,17 +286,21 @@ router.post('/pay-contribution', authenticateToken, async (req, res) => {
       }
     }
 
-    await db.commit();
+    await connection.commit();
     res.json({ 
       success: true, 
       message: 'Cotisation payée avec succès',
       ...payoutData
     });
+
   } catch (err) {
-    await db.rollback();
+    await connection.rollback();
     console.error('Erreur paiement cotisation:', err);
     res.status(500).json({ error: 'Erreur lors du paiement' });
+  } finally {
+    connection.release();
   }
 });
+
 
 module.exports = router;
