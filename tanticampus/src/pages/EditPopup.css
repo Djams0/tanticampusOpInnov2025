@@ -47,3 +47,15 @@
 .popup-actions button:last-child {
   background-color: #999;
 }
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+  font-size: 0.9em;
+}
+
+.success-message {
+  color: green;
+  margin-top: 10px;
+  font-size: 0.9em;
+}

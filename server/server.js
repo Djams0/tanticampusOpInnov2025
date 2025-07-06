@@ -3,6 +3,8 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const homeRoutes = require('./routes/home');
 const tontineRoutes = require('./routes/tontine');
+const profileRoutes = require('./routes/profile');
+const walletRoutes = require('./routes/wallet');
 
 const app = express();
 
@@ -14,6 +16,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api', homeRoutes);
 app.use('/api/tontine', tontineRoutes);
+app.use('/api/user', profileRoutes);
+app.use('/api/wallet', walletRoutes);
 
 // Lancement du serveur
 const PORT = process.env.PORT || 3000;
