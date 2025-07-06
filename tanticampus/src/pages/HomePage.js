@@ -78,8 +78,7 @@ const HomePage = () => {
                 </Link>
               ))}
             </div>
-
-            <Link to="/Wallet" className="details-link">Voir les détails</Link>
+            <span className="details-link">Importer une tontine</span>
           </div>
         </div>
 
@@ -117,7 +116,6 @@ const HomePage = () => {
                 ? `${pendingPaymentsCount} cotisation(s) à verser`
                 : "Aucune cotisation en attente"}
             </p>
-            <span className="details-link">Voir les détails</span>
           </div>
           <div className="box dark">
             <p className="box-title">Mon Wallet</p>
