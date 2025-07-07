@@ -5,6 +5,7 @@ const homeRoutes = require('./routes/home');
 const tontineRoutes = require('./routes/tontine');
 const profileRoutes = require('./routes/profile');
 const walletRoutes = require('./routes/wallet');
+const tontineDetailsRoutes = require('./routes/tontinedetails');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use('/api', homeRoutes);
 app.use('/api/tontine', tontineRoutes);
 app.use('/api/user', profileRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/tontine-details', tontineDetailsRoutes);
 
 // Lancement du serveur
 const PORT = process.env.PORT || 3000;
