@@ -66,10 +66,10 @@ const HomePage = () => {
           <div className="tontines-section">
             <p className="section-title">Mes tontines ({participatingTontines.length})</p>
             <div className="tontines-list">
-              {participatingTontines.map((t, i) => (
-                <div key={i} className="tontine-item" title={t.title}>
+              {participatingTontines.map((t) => (
+                <Link to={`/tontine/${t.id}`} key={t.id} className="tontine-item" title={t.title}>
                   {t.title}
-                </div>
+                </Link>
               ))}
 
               {[...Array(4 - participatingTontines.length)].map((_, i) => (

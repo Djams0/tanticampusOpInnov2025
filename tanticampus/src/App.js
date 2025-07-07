@@ -69,7 +69,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/tontine"
+          path="/tontine/:id"
           element={
             <ProtectedRoute>
               <TontinePage />
