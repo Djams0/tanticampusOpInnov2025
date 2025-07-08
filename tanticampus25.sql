@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : dim. 06 juil. 2025 à 14:43
+-- Généré le : mar. 08 juil. 2025 à 10:16
 -- Version du serveur : 9.1.0
 -- Version de PHP : 8.3.14
 
@@ -74,6 +74,26 @@ CREATE TABLE IF NOT EXISTS `messages` (
   PRIMARY KEY (`message_id`),
   KEY `sender_id` (`sender_id`),
   KEY `receiver_id` (`receiver_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `notifications`
+--
+
+DROP TABLE IF EXISTS `notifications`;
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `notification_id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `tontine_id` int DEFAULT NULL,
+  `type` enum('warning','reminder','system','group_message','private_message') NOT NULL,
+  `content` text NOT NULL,
+  `is_read` tinyint(1) DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`notification_id`),
+  KEY `user_id` (`user_id`),
+  KEY `tontine_id` (`tontine_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -174,7 +194,16 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   PRIMARY KEY (`transaction_id`),
   KEY `user_id` (`user_id`),
   KEY `tontine_id` (`tontine_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Déchargement des données de la table `transactions`
+--
+
+INSERT INTO `transactions` (`transaction_id`, `user_id`, `tontine_id`, `type`, `amount`, `transaction_date`) VALUES
+(1, 1, NULL, 'deposit', 100.00, '2025-07-06 14:57:56'),
+(2, 1, NULL, 'deposit', 1000.00, '2025-07-06 14:58:42'),
+(3, 1, NULL, 'withdrawal', 50.00, '2025-07-06 15:17:33');
 
 -- --------------------------------------------------------
 
@@ -211,7 +240,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 
 INSERT INTO `users` (`user_id`, `first_name`, `last_name`, `email`, `password_hash`, `phone_number`, `date_of_birth`, `university`, `student_id`, `is_verified`, `verification_document`, `trust_score`, `score_last_updated`, `wallet_balance`, `last_activity_at`, `is_banned`, `created_at`, `updated_at`) VALUES
-(1, 'Mansour Djamil', 'Ndiaye', 'mansourdjamil14@gmail.com', '$2b$10$mCtvQPVRAa31RlMaMh6LieEaj9qmKIq32UGkSIlgBwZAVlz7JOwoS', NULL, NULL, 'EPSI-Paris', '01', 0, NULL, 100, '2025-07-04 11:24:10', 0.00, '2025-07-04 13:24:10', 0, '2025-07-04 11:24:10', '2025-07-05 15:31:48');
+(1, 'Mansour Djamil', 'Ndiaye', 'mansourdjamil14@gmail.com', '$2b$10$593KphZ1UM7P2x6LQL4Mcu/65Q5sCn6TmQrWKEtcns2fFqK8wZihC', NULL, NULL, 'EPSI-Paris', '01', 0, NULL, 100, '2025-07-04 11:24:10', 1050.00, '2025-07-04 13:24:10', 0, '2025-07-04 11:24:10', '2025-07-06 15:17:33');
 
 --
 -- Contraintes pour les tables déchargées
@@ -237,6 +266,13 @@ ALTER TABLE `join_requests`
 ALTER TABLE `messages`
   ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`sender_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`tontine_id`) REFERENCES `tontines` (`tontine_id`) ON DELETE SET NULL;
 
 --
 -- Contraintes pour la table `tontines`

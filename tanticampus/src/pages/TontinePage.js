@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './TontinePage.css';
 
-const members = [
+const initialMembers = [
   { initials: 'AD', name: 'Amina Diallo', status: 'Payé' },
   { initials: 'MT', name: 'Moussa Traoré', status: 'Payé' },
   { initials: 'FS', name: 'Fatou Sow', status: 'Bénéficiaire' },
@@ -9,10 +9,15 @@ const members = [
   { initials: 'MK', name: 'Mariam Keïta', status: 'En attente' },
 ];
 
-const calendar = [
-  { initials: 'AD', name: 'Amina Diallo', date: 'avril 2025' },
-  { initials: 'MT', name: 'Moussa Traoré', date: 'mai 2025' },
+const initialCalendar = [
   { initials: 'FS', name: 'Fatou Sow', date: 'juin 2025' },
+  { initials: 'IC', name: 'Ibrahim Coulibaly', date: 'juillet 2025' },
+  { initials: 'MK', name: 'Mariam Keïta', date: 'août 2025' },
+];
+
+const demandes = [
+  { initials: 'BN', name: 'Binta Ndiaye' },
+  { initials: 'TS', name: 'Tidiane Sy' },
 ];
 
 const defaultMessages = {
@@ -31,6 +36,9 @@ export default function TontinePage() {
   const [selectedUser, setSelectedUser] = useState('group');
   const [messages, setMessages] = useState(defaultMessages);
   const [newMessage, setNewMessage] = useState('');
+  const [calendar, setCalendar] = useState(initialCalendar);
+  const [showOptions, setShowOptions] = useState(null);
+  const [alertMessage, setAlertMessage] = useState('');
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -39,6 +47,31 @@ export default function TontinePage() {
       [selectedUser]: [...prev[selectedUser], { from: 'Vous', content: newMessage }],
     }));
     setNewMessage('');
+  };
+
+  const sendAlert = (initials) => {
+    const msg = prompt("Entrez le message d'avertissement :");
+    if (msg) {
+      setMessages((prev) => ({
+        ...prev,
+        [initials]: [...(prev[initials] || []), { from: 'Admin', content: `⚠️ ${msg}` }],
+      }));
+    }
+    setShowOptions(null);
+  };
+
+  const moveInCalendar = (initials, direction) => {
+    const idx = calendar.findIndex(c => c.initials === initials);
+    if (idx === -1) return;
+
+    const newCalendar = [...calendar];
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+
+    if (targetIdx < 0 || targetIdx >= calendar.length) return;
+
+    [newCalendar[idx], newCalendar[targetIdx]] = [newCalendar[targetIdx], newCalendar[idx]];
+    setCalendar(newCalendar);
+    setShowOptions(null);
   };
 
   return (
@@ -64,12 +97,12 @@ export default function TontinePage() {
       <div className="grid-container">
         <div className="card">
           <h2>Membres et Cotisations</h2>
-          {members.map((m, i) => (
+          {initialMembers.map((m, i) => (
             <div
               className="member-row"
               key={i}
               onClick={() => setSelectedUser(m.initials)}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', position: 'relative' }}
             >
               <div className="member-info">
                 <div className="avatar">{m.initials}</div>
@@ -78,6 +111,22 @@ export default function TontinePage() {
               <div className={`status ${m.status.replace(' ', '-').toLowerCase()}`}>
                 {m.status}
               </div>
+              <div className="options-menu-trigger" onClick={(e) => {
+                e.stopPropagation();
+                setShowOptions(showOptions === m.initials ? null : m.initials);
+              }}>⋮</div>
+
+              {showOptions === m.initials && (
+                <div className="options-menu">
+                  <button onClick={() => sendAlert(m.initials)}>⚠️ Avertir</button>
+                  {calendar.some(c => c.initials === m.initials) && (
+                    <>
+                      <button onClick={() => moveInCalendar(m.initials, 'up')}>⬆️ Monter</button>
+                      <button onClick={() => moveInCalendar(m.initials, 'down')}>⬇️ Descendre</button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -86,7 +135,7 @@ export default function TontinePage() {
           <h2>
             {selectedUser === 'group'
               ? 'Conversation de Groupe'
-              : `Discussion avec ${members.find((m) => m.initials === selectedUser)?.name}`}
+              : `Discussion avec ${initialMembers.find((m) => m.initials === selectedUser)?.name}`}
           </h2>
 
           <div className="chat-box">
@@ -130,6 +179,22 @@ export default function TontinePage() {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="card">
+        <h2>Demandes en attente</h2>
+        {demandes.map((d, i) => (
+          <div key={i} className="member-row">
+            <div className="member-info">
+              <div className="avatar">{d.initials}</div>
+              <span>{d.name}</span>
+            </div>
+            <div>
+              <button className="accept">Accepter</button>
+              <button className="reject">Refuser</button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
