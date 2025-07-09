@@ -46,7 +46,7 @@ router.get('/:tontine_id', authenticateToken, async (req, res) => {
     let nextBeneficiary = null;
     if (currentCycle) {
       const [[beneficiary]] = await db.query(`
-        SELECT user_id, first_name, last_name
+        SELECT tp.user_id, u.first_name, u.last_name
         FROM tontine_participants tp
         JOIN users u ON tp.user_id = u.user_id
         WHERE tp.tontine_id = ? AND tp.has_received = 0 AND tp.is_active = 1
@@ -162,42 +162,48 @@ router.post('/update-beneficiary-order', authenticateToken, async (req, res) => 
     return res.status(400).json({ error: 'Paramètres invalides' });
   }
 
+  const connection = await db.getConnection(); // ⬅️ On récupère une connexion
+
   try {
-    await db.beginTransaction();
+    await connection.beginTransaction();
 
     // Vérification admin
-    const [[isAdmin]] = await db.query(`
+    const [[isAdmin]] = await connection.query(`
       SELECT 1 FROM tontines WHERE tontine_id = ? AND admin_id = ?
     `, [tontine_id, req.user.id]);
 
     if (!isAdmin) {
-      await db.rollback();
+      await connection.rollback();
+      connection.release();
       return res.status(403).json({ error: 'Action non autorisée' });
     }
 
-    // Vérifier que tontine pas commencée
-    const [[tontine]] = await db.query(`
+    // Vérifier que la tontine n’a pas commencé
+    const [[tontine]] = await connection.query(`
       SELECT status FROM tontines WHERE tontine_id = ?
     `, [tontine_id]);
 
     if (tontine.status !== 'pending') {
-      await db.rollback();
+      await connection.rollback();
+      connection.release();
       return res.status(400).json({ error: 'La tontine a déjà commencé' });
     }
 
-    // Mise à jour de la date de join_date selon l’ordre donné
+    // Mise à jour de la date de join_date
     for (const [index, user_id] of new_order.entries()) {
-      await db.query(`
+      await connection.query(`
         UPDATE tontine_participants
         SET join_date = DATE_ADD(NOW(), INTERVAL ? SECOND)
         WHERE tontine_id = ? AND user_id = ?
       `, [index, tontine_id, user_id]);
     }
 
-    await db.commit();
+    await connection.commit();
+    connection.release();
     res.json({ success: true, message: 'Ordre mis à jour' });
   } catch (err) {
-    await db.rollback();
+    await connection.rollback();
+    connection.release();
     console.error('Erreur mise à jour ordre:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
@@ -211,49 +217,56 @@ router.post('/warn-participant', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Paramètres manquants' });
   }
 
-  try {
-    await db.beginTransaction();
+  const connection = await db.getConnection(); // ➜ Connexion individuelle depuis le pool
 
-    // Vérifier admin/coadmin
-    const [[isAdmin]] = await db.query(`
+  try {
+    await connection.beginTransaction();
+
+    // Vérifier admin ou coadmin
+    const [[isAdmin]] = await connection.query(`
       SELECT 1 FROM tontine_participants
       WHERE tontine_id = ? AND user_id = ? AND role IN ('admin', 'coadmin')
     `, [tontine_id, req.user.id]);
 
     if (!isAdmin) {
-      await db.rollback();
+      await connection.rollback();
+      connection.release();
       return res.status(403).json({ error: 'Action non autorisée' });
     }
 
-    // Vérifier participant actif
-    const [[participant]] = await db.query(`
+    // Vérifier que le participant est actif
+    const [[participant]] = await connection.query(`
       SELECT 1 FROM tontine_participants
       WHERE tontine_id = ? AND user_id = ? AND is_active = 1
     `, [tontine_id, user_id]);
 
     if (!participant) {
-      await db.rollback();
+      await connection.rollback();
+      connection.release();
       return res.status(404).json({ error: 'Participant non trouvé' });
     }
 
-    // Baisser le score confiance, minimum 0
-    await db.query(`
+    // Baisser le score de confiance
+    await connection.query(`
       UPDATE users
       SET trust_score = GREATEST(0, trust_score - 10),
           score_last_updated = NOW()
       WHERE user_id = ?
     `, [user_id]);
 
-    // Créer notification avertissement
-    await db.query(`
+    // Créer notification d'avertissement
+    await connection.query(`
       INSERT INTO notifications (user_id, tontine_id, type, content)
       VALUES (?, ?, 'warning', ?)
     `, [user_id, tontine_id, `Avertissement: ${reason}`]);
 
-    await db.commit();
+    await connection.commit();
+    connection.release();
+
     res.json({ success: true, message: 'Avertissement envoyé' });
   } catch (err) {
-    await db.rollback();
+    await connection.rollback();
+    connection.release();
     console.error('Erreur avertissement:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
@@ -267,43 +280,53 @@ router.post('/send-group-message', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Paramètres manquants' });
   }
 
+  const connection = await db.getConnection();
+
   try {
-    await db.beginTransaction();
+    await connection.beginTransaction();
 
     // Vérifier que l’utilisateur est membre actif
-    const [[isMember]] = await db.query(`
+    const [[isMember]] = await connection.query(`
       SELECT 1 FROM tontine_participants
       WHERE tontine_id = ? AND user_id = ? AND is_active = 1
     `, [tontine_id, req.user.id]);
 
     if (!isMember) {
-      await db.rollback();
+      await connection.rollback();
+      connection.release();
       return res.status(403).json({ error: 'Action non autorisée' });
     }
 
     // Enregistrer le message
-    const [result] = await db.query(`
+    const [result] = await connection.query(`
       INSERT INTO group_messages (tontine_id, sender_id, content)
       VALUES (?, ?, ?)
     `, [tontine_id, req.user.id, content]);
 
-    // Créer notification pour chaque autre membre actif
-    const [members] = await db.query(`
+    // Créer une notification pour chaque autre membre actif
+    const [members] = await connection.query(`
       SELECT user_id FROM tontine_participants
       WHERE tontine_id = ? AND user_id != ? AND is_active = 1
     `, [tontine_id, req.user.id]);
 
     for (const member of members) {
-      await db.query(`
+      await connection.query(`
         INSERT INTO notifications (user_id, tontine_id, type, content)
         VALUES (?, ?, 'group_message', 'Nouveau message dans la tontine')
       `, [member.user_id, tontine_id]);
     }
 
-    await db.commit();
-    res.json({ success: true, message: 'Message envoyé', message_id: result.insertId });
+    await connection.commit();
+    connection.release();
+
+    res.json({
+      success: true,
+      message: 'Message envoyé',
+      message_id: result.insertId
+    });
   } catch (err) {
-    await db.rollback();
+    await connection.rollback();
+    connection.release();
     console.error('Erreur message groupe:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
@@ -350,39 +373,46 @@ router.post('/remove-participant', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Paramètres manquants' });
   }
 
-  try {
-    await db.beginTransaction();
+  const connection = await db.getConnection();
 
-    // Vérifier admin
-    const [[isAdmin]] = await db.query(`
+  try {
+    await connection.beginTransaction();
+
+    // Vérifier si l'utilisateur est admin de la tontine
+    const [[isAdmin]] = await connection.query(`
       SELECT 1 FROM tontines WHERE tontine_id = ? AND admin_id = ?
     `, [tontine_id, req.user.id]);
 
     if (!isAdmin) {
-      await db.rollback();
+      await connection.rollback();
+      connection.release();
       return res.status(403).json({ error: 'Action non autorisée' });
     }
 
     // Vérifier que la tontine n’a pas commencé
-    const [[tontine]] = await db.query(`
+    const [[tontine]] = await connection.query(`
       SELECT status FROM tontines WHERE tontine_id = ?
     `, [tontine_id]);
 
     if (tontine.status !== 'pending') {
-      await db.rollback();
+      await connection.rollback();
+      connection.release();
       return res.status(400).json({ error: 'La tontine a déjà commencé' });
     }
 
-    // Supprimer participant
-    await db.query(`
+    // Supprimer le participant
+    await connection.query(`
       DELETE FROM tontine_participants
       WHERE tontine_id = ? AND user_id = ?
     `, [tontine_id, user_id]);
 
-    await db.commit();
+    await connection.commit();
+    connection.release();
+
     res.json({ success: true, message: 'Participant supprimé' });
   } catch (err) {
-    await db.rollback();
+    await connection.rollback();
+    connection.release();
     console.error('Erreur suppression participant:', err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
