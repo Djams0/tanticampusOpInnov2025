@@ -7,6 +7,7 @@ const profileRoutes = require('./routes/profile');
 const walletRoutes = require('./routes/wallet');
 const tontineDetailsRoutes = require('./routes/tontinedetails');
 const importTontineRoutes = require('./routes/imporTontine');
+const notifRoutes = require('./routes/notif');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/user', profileRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/tontine-details', tontineDetailsRoutes);
 app.use('/api/import-tontine', importTontineRoutes);
+app.use('/api/notifications', notifRoutes);
 
 // Lancement du serveur
 const PORT = process.env.PORT || 3000;

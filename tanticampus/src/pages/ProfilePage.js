@@ -33,13 +33,10 @@ const ProfilePage = () => {
       } catch (err) {
         console.error("Erreur lors de la récupération du profil :", err);
         if (err.response) {
-          // Erreur du backend avec un code de statut
           setError(`Erreur ${err.response.status} : ${err.response.data.error || "Erreur inconnue du serveur."}`);
         } else if (err.request) {
-          // Requête envoyée mais pas de réponse
           setError("Erreur réseau : aucune réponse du serveur.");
         } else {
-          // Erreur de configuration
           setError(`Erreur : ${err.message}`);
         }
       }
@@ -56,6 +53,11 @@ const ProfilePage = () => {
   const handleClose = () => {
     setIsModalOpen(false);
     setSelectedField(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    window.location.href = "/login";
   };
 
   const fieldConfig = [
@@ -134,6 +136,10 @@ const ProfilePage = () => {
           }}
         />
       )}
+
+      <button className="logout-button" onClick={handleLogout}>
+        Déconnexion
+      </button>
     </div>
   );
 };
