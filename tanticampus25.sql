@@ -41,7 +41,6 @@ CREATE TABLE IF NOT EXISTS `group_messages` (
 
 -- --------------------------------------------------------
 
-
 --
 -- Structure de la table `join_requests`
 --
