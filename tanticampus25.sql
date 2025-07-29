@@ -210,7 +210,7 @@ INSERT INTO `transactions` (`transaction_id`, `user_id`, `tontine_id`, `type`, `
 --
 -- Structure de la table `users`
 --
-
+ 
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE IF NOT EXISTS `users` (
   `user_id` int NOT NULL AUTO_INCREMENT,
