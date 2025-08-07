@@ -208,7 +208,7 @@ INSERT INTO `transactions` (`transaction_id`, `user_id`, `tontine_id`, `type`, `
 -- --------------------------------------------------------
 
 --
--- Structure de la table `users` 
+-- Structure de la table `users`
 --
 
 DROP TABLE IF EXISTS `users`;
